@@ -30,7 +30,7 @@ RSHW2/
 │   └── processed/          # обработанные данные/артефакты (при необходимости)
 ├── reports/
 │   ├── figures/            # графики EDA (ratings_distribution.png, user_activity.png, book_popularity.png, top_tags.png)
-│   └── REPORT.md           # отчёт с выводами (формируется командой python main.py --report)
+│   └── REPORT.md           # отчёт с выводами (формируется командой python main.py --report и при запуске контейнера)
 ├── logs/                   # логи запусков при python main.py --log (run_YYYY-MM-DD_HH-MM-SS.log)
 ├── scripts/                # скрипты для Docker: docker-report.ps1, docker-eda.ps1, docker-report.sh, docker-eda.sh
 ├── main.py                 # Точка входа: python main.py [--eda | --report | --log]
@@ -65,33 +65,8 @@ python main.py
 
 После этого папка `venv/` будет содержать изолированное окружение; зависимости установятся только в него. Выйти из окружения: `deactivate`.
 
-### Вариант 2: без виртуального окружения
 
-Из корня проекта:
-
-```bash
-pip install -r requirements.txt
-python main.py
-```
-
-### Режимы запуска
-
-| Команда | Действие |
-|---------|----------|
-| `python main.py` | Полный эксперимент: загрузка данных, train/test, обучение моделей, RMSE для SVD, Precision@K / Recall@K / nDCG@K, вывод в консоль |
-| `python main.py --eda` | Только EDA (Этап 1): графики сохраняются в `reports/figures/` |
-| `python main.py --report` | EDA + эксперимент + формирование отчёта `reports/REPORT.md` с выводами по всем этапам |
-| `python main.py --log` | То же, что без флага, но весь вывод дополнительно пишется в файл в каталоге `logs/` |
-| `python main.py --pipeline` | Сквозной пайплайн (без нейросети): загрузка → предобработка → модели → гибрид → оценка |
-| `python main.py --neural` | Пайплайн с Two-Tower (требуется `torch`): `pip install torch` |
-| `python main.py --eval N` | Ограничить число пользователей для оценки (по умолчанию 500) |
-| `python main.py --report --log` | Отчёт + сохранение лога запуска в `logs/run_YYYY-MM-DD_HH-MM-SS.log` |
-
-**Просмотр логов:** при запуске с флагом `--log` весь вывод (консольный) дублируется в файл `logs/run_<дата>_<время>.log`. Каталог `logs/` создаётся автоматически; после завершения в консоли выводится путь к сохранённому логу.
-
-Скрипт отчёта формирует документ с результатами EDA, сводной таблицей метрик, гибридной стратегией и выводами (какая модель лучше, сильные/слабые стороны, идеи улучшения).
-
-### Вариант 3: Docker
+### Вариант 2: Docker
 
 **Требование:** установленный [Docker](https://docs.docker.com/get-docker/).
 
@@ -103,12 +78,6 @@ docker build -t hw1-recsys .
 ```
 
 **2. Запустить контейнер:**
-
-| Что запустить | Команда |
-|---------------|---------|
-| Полный эксперимент (вывод только в консоль) | `docker run --rm hw1-recsys` |
-| Только EDA (графики в контейнере) | `docker run --rm hw1-recsys --eda` |
-| **EDA + отчёт (отчёт на локальной машине)** | см. команды ниже |
 
 **Команда для EDA + отчёт (результат в папке проекта):**
 
@@ -129,64 +98,6 @@ docker run --rm -v "$(pwd)/reports:/app/reports" hw1-recsys --report
 ```
 
 После выполнения отчёт будет в `reports/REPORT.md`, графики — в `reports/figures/`.
-
-Без монтирования (`-v`) отчёт и графики остаются **внутри контейнера** и после остановки недоступны на хосте.
-
-**3. Альтернатива — скрипты (то же монтирование):**
-
-**Вариант А — скрипты (удобнее):** из корня проекта:
-
-- **PowerShell (Windows):**
-```powershell
-.\scripts\docker-report.ps1   # отчёт + графики → reports/
-.\scripts\docker-eda.ps1      # только графики EDA → reports/figures/
-```
-
-- **Linux / macOS:** сначала `chmod +x scripts/*.sh`, затем:
-```bash
-./scripts/docker-report.sh   # отчёт + графики → reports/
-./scripts/docker-eda.sh      # только графики EDA → reports/figures/
-```
-
-**Вариант Б — команда с монтированием вручную:**
-
-- **PowerShell (Windows):**
-```powershell
-mkdir -Force reports
-docker run --rm -v "${PWD}/reports:/app/reports" hw1-recsys --report
-```
-
-- **cmd (Windows):**
-```cmd
-mkdir reports
-docker run --rm -v "%CD%\reports:/app/reports" hw1-recsys --report
-```
-
-- **Linux / macOS:**
-```bash
-mkdir -p reports
-docker run --rm -v "$(pwd)/reports:/app/reports" hw1-recsys --report
-```
-
-**4. Свои данные с хоста (опционально):**
-
-Если CSV лежат не в образе, а на хосте в `./data/raw/`:
-
-- **PowerShell (Windows):** `%CD%` в PowerShell не работает — используйте `$PWD`:
-```powershell
-docker run --rm -v "${PWD}/data/raw:/app/data/raw" hw1-recsys
-```
-- **cmd (Windows):**
-```cmd
-docker run --rm -v "%CD%\data\raw:/app/data/raw" hw1-recsys
-```
-- **Linux/macOS:**
-```bash
-docker run --rm -v "$(pwd)/data/raw:/app/data/raw" hw1-recsys
-```
-
-- `--rm` — удалить контейнер после завершения.
-- Имя образа `hw1-recsys` можно заменить на любое (например `book-recsys`).
 
 ## Логика решения
 
