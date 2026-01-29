@@ -1,30 +1,24 @@
 # -*- coding: utf-8 -*-
-"""
-CLI-обёртки для запуска экспериментов и отчётов.
-"""
+"""CLI-обёртки для запуска EDA, эксперимента и отчёта."""
 from .eda import run_eda
-from .evaluation import run_experiment
+from .evaluation import run_full_evaluation
 from .report import generate_report
 
 
 def run_all() -> None:
-    """
-    Запустить полный цикл: обучение, оценка, вывод в консоль.
-    """
-    run_experiment(verbose=True, return_results=False)
+    """Полный цикл: обучение, оценка моделей и гибрида, вывод в консоль."""
+    run_full_evaluation(verbose=True, return_results=False)
 
 
 def run_eda_only() -> None:
-    """
-    Запустить только EDA (Этап 1): графики в reports/figures/, вывод в консоль.
-    """
+    """Только EDA: графики в reports/figures/."""
     run_eda()
 
 
-def run_report() -> str:
-    """
-    Сформировать отчёт: EDA + эксперимент + REPORT.md в reports/.
-    Возвращает путь к сохранённому отчёту.
-    """
-    return generate_report(run_eda_first=True, verbose=True)
-
+def run_report(eval_max_users: int = 500) -> str:
+    """EDA + оценка моделей и гибрида + формирование REPORT.md в reports/. Возвращает путь к отчёту."""
+    return generate_report(
+        run_eda_first=True,
+        verbose=True,
+        eval_max_users=eval_max_users,
+    )

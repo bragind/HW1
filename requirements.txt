@@ -1,4 +1,4 @@
-# Goodbooks-10k рекомендательный сервис
+# RSHW2: Гибридная система рекомендаций книг
 # Python 3.8+
 
 pandas>=1.3.0
@@ -8,3 +8,6 @@ scikit-learn>=1.0.0
 scikit-surprise>=1.1.4
 matplotlib>=3.5.0
 tabulate>=0.9.0
+
+# Продвинутая часть: Two-Tower (опционально)
+# pip install torch
