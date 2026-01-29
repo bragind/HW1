@@ -8,6 +8,7 @@
 - Этап 5: сводная таблица метрик (Precision@K, Recall@K, nDCG@K, RMSE)
 - Этап 6: гибридная стратегия, выводы, идеи улучшения
 """
+import base64
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -20,7 +21,23 @@ def _section(title: str, level: int = 1) -> str:
     return "\n" + "#" * level + " " + title + "\n\n"
 
 
-def _write_eda_section(eda_results: Dict[str, Any]) -> str:
+def _embed_figure_as_base64(figures_dir: Path, filename: str) -> str:
+    """
+    Читает PNG из figures_dir и возвращает data URI для вставки в Markdown.
+    График будет отображаться непосредственно в отчёте без внешних файлов.
+    """
+    path = figures_dir / filename
+    if not path.exists():
+        return ""
+    try:
+        data = path.read_bytes()
+        b64 = base64.b64encode(data).decode("ascii")
+        return f"data:image/png;base64,{b64}"
+    except Exception:
+        return ""
+
+
+def _write_eda_section(eda_results: Dict[str, Any], figures_dir: Optional[Path] = None) -> str:
     out = []
     out.append(_section("Этап 1: Знакомство с данными и EDA", 1))
 
@@ -30,15 +47,21 @@ def _write_eda_section(eda_results: Dict[str, Any]) -> str:
     out.append(f"- tags: {eda_results.get('tags_shape', (0, 0))}\n")
     out.append(f"- book_tags: {eda_results.get('book_tags_shape', (0, 0))}\n\n")
 
-    # Относительный путь от reports/REPORT.md к reports/figures/
-    fig = "figures"
+    fig_dir = figures_dir or Path(FIGURES_DIR)
+    rel_fig = "figures"  # запасной вариант: относительная ссылка
+
+    def _img(alt: str, filename: str) -> str:
+        uri = _embed_figure_as_base64(fig_dir, filename)
+        if uri:
+            return f"![{alt}]({uri})\n\n"
+        return f"![{alt}]({rel_fig}/{filename})\n\n"
 
     r = eda_results.get("ratings_distribution", {})
     out.append("## Распределение оценок\n\n")
     out.append(f"- Средняя оценка: {r.get('mean_rating', 0):.2f}\n")
     out.append(f"- Доля оценок ≥ 4: {r.get('share_high_ratings_ge4', 0):.2%}\n")
     out.append(f"- **Вывод:** {r.get('conclusion', '')}\n\n")
-    out.append(f"![Распределение оценок]({fig}/ratings_distribution.png)\n\n")
+    out.append(_img("Распределение оценок", "ratings_distribution.png"))
 
     u = eda_results.get("user_activity", {})
     out.append("## Активность пользователей\n\n")
@@ -46,19 +69,19 @@ def _write_eda_section(eda_results: Dict[str, Any]) -> str:
     out.append(f"- Медиана оценок на пользователя: {u.get('ratings_per_user_median', 0):.0f}\n")
     out.append(f"- Холодные пользователи (≤5 оценок): {u.get('cold_users_le5', 0)}\n")
     out.append(f"- **Вывод:** {u.get('conclusion', '')}\n\n")
-    out.append(f"![Активность пользователей]({fig}/user_activity.png)\n\n")
+    out.append(_img("Активность пользователей", "user_activity.png"))
 
     b = eda_results.get("book_popularity", {})
     out.append("## Популярность книг\n\n")
     out.append(f"- Число книг: {b.get('n_books', 0)}\n")
     out.append(f"- Медиана оценок на книгу: {b.get('ratings_per_book_median', 0):.0f}\n")
     out.append(f"- **Вывод:** {b.get('conclusion', '')}\n\n")
-    out.append(f"![Популярность книг]({fig}/book_popularity.png)\n\n")
+    out.append(_img("Популярность книг", "book_popularity.png"))
 
     t = eda_results.get("top_tags", {})
     out.append("## Самые частые теги\n\n")
     out.append(f"- **Вывод:** {t.get('conclusion', '')}\n\n")
-    out.append(f"![Топ тегов]({fig}/top_tags.png)\n\n")
+    out.append(_img("Топ тегов", "top_tags.png"))
 
     issues = eda_results.get("data_issues", {})
     out.append("## Основные проблемы данных (разреженность, смещение популярности)\n\n")
@@ -165,13 +188,15 @@ def generate_report(
     parts.append("Проделанная работа по этапам: EDA, базовые и контентные модели, ")
     parts.append("коллаборативная фильтрация, матричные разложения, оценка и гибридизация.\n\n")
 
+    figs_dir = Path(figures_dir or FIGURES_DIR)
     if run_eda_first:
         if verbose:
             print("Запуск EDA...")
-        eda_results = run_eda(figures_dir=figures_dir or FIGURES_DIR)
-        parts.append(_write_eda_section(eda_results))
+        eda_results = run_eda(figures_dir=str(figs_dir))
+        parts.append(_write_eda_section(eda_results, figures_dir=figs_dir))
     else:
         eda_results = {}
+        parts.append(_write_eda_section(eda_results, figures_dir=figs_dir))
 
     if verbose:
         print("Запуск эксперимента (обучение и оценка моделей)...")
