@@ -129,6 +129,4 @@ docker run --rm -v "$(pwd)/reports:/app/reports" hw1-recsys --report
 - **Этап 5:** Precision@K, Recall@K, nDCG@K на отложенной тестовой выборке; сводная таблица по всем моделям.
 - **Этап 6:** гибридная стратегия (холодный старт: контент для новых книг, SVD + Popularity для известных); выводы и идеи улучшения. Отчёт: `python main.py --report` → `reports/REPORT.md`.
 
-## Ноутбук-прототип
 
-Исходный ноутбук `book.ipynb` находится в `notebooks/`. Запуск проекта выполняется через `main.py`.
